@@ -72,10 +72,11 @@ print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std)
 > __x: *1d np.array(length = d), the point to be estimated*__ <br>
 #### Output
 > __ans: *result of the prediction*__ <br>
->> ans.value: predicted value of func(x)
->> ans.std: MSE of the estimator
+>> ans.value: predicted value of func(x) <br>
+>> ans.std: MSE of the estimator <br>
 
 ## Example
+
 
 
 
