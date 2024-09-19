@@ -125,7 +125,7 @@ class func:
         result += self.noise(0, self.zeta * min(1, abs(result))) * add_std
         return result
 ```
-Use TM_RTSG for prediction:
+### Use TM_RTSG for prediction
 ```
 from TM_RTSG import TM_RTSG
 from func import func
