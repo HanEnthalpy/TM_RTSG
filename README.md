@@ -1,6 +1,7 @@
 # TM_RTSG
 Sample and Computationally Efficient Stochastic Kriging in High Dimensions
 
+
 This project implement the algorithm designed by Liang Ding and Xiaowei Zhang, in the artical [*Sample and Computationally Efficient Stochastic Kriging in High Dimensions*](https://doi.org/10.1287/opre.2022.2367) published in Sep 2022.
 
 The algorithm is designed to predict the value of black-box functions with noise under limited sampling resources.
@@ -76,7 +77,47 @@ print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std)
 >> ans.std: MSE of the estimator <br>
 
 ## Example
+The example programme can be found in the "Example" directory
+### Function
+The following class __func__ defined the Griewank and Schwefel-2.22 function with noise. <br>
+There're two types of noise: 1) wave of the sampling point and 2) noise of the function value. <br>
+When querying the value of f(x): <br>
+(1) the input vector become x' = x + $\epsilon$, with $\epsilon_{i}$ follows independent identical normal distribution $N(0, wave^{2})$
 
+```
+class func:
+    def __init__(self, f=1, xi=1, wave=1):
+        self.f = f
+        self.xi = xi
+        self.wave = wave
+
+    def noise(self, mean, std):
+        if std == 0:
+            return 0
+        return np.random.normal(mean, std)
+
+    def query(self, x, add_std=1):
+        result = 0
+        x = np.array(x)
+        for i in range(len(x)):
+            x[i] += self.noise(0, self.wave*add_std)
+        if self.f == 1:
+            A = 0
+            B = 1
+            for i in range(len(x)):
+                A += x[i] ** 2 / 4000
+                B *= ma.cos(x[i] / (i + 1))
+            result = - 50 * (A - B + 1)
+        if self.f == 2:
+            A = 0
+            B = 1
+            for i in range(len(x)):
+                A += abs(x[i])
+                B *= abs(x[i])
+            result = - A - B + 100
+        result += self.noise(0, self.xi * min(1, abs(result))) * add_std
+        return result
+```
 
 
 
