@@ -81,7 +81,7 @@ print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std)
 The example programme can be found in the "Example" directory
 ### Function with noise
 The following class __func__ defined the Griewank and Schwefel-2.22 function with noise. <br>
-The returned value is $f(\vec{x}) + \xi$, with $\xi \sim N(0, \zeta^{2}f^{2}(\vec{x'}))$ <br>
+The returned value is $f(\vec{x}) + \xi$, with $\xi \sim N(0, \zeta^{2}f^{2}(\vec{x}))$ <br>
 
 The following class also support returning the true value of the function by using `query(x, add_std=0)`
 ```
