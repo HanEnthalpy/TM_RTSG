@@ -91,7 +91,7 @@ import math as ma
 class func:
     def __init__(self, f=1, zeta=1):
         self.f = f
-        self.zeta = zete
+        self.zeta = zeta
 
     def noise(self, mean, std):
         if std == 0:
