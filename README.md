@@ -89,7 +89,7 @@ When querying the value of $f(\vec{x})$: <br>
 
 The following class also support returning the true value of the function by using `query(x, add_std=0)`
 ```
-func.py
+# func.py
 import numpy as np
 import math as ma
 class func:
@@ -127,7 +127,7 @@ class func:
 ```
 ### Use TM_RTSG for prediction
 ```
-example.py
+# example.py
 from TM_RTSG import TM_RTSG
 from func import func
 import numpy as np
