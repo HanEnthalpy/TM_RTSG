@@ -127,6 +127,7 @@ class func:
 ```
 ### Use TM_RTSG for prediction
 ```
+example.py
 from TM_RTSG import TM_RTSG
 from func import func
 import numpy as np
