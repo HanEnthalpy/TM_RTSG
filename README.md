@@ -81,11 +81,7 @@ print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std)
 The example programme can be found in the "Example" directory
 ### Function with noise
 The following class __func__ defined the Griewank and Schwefel-2.22 function with noise. <br>
-There're two types of noise: 1) wave of the sampling point and 2) noise of the function value. <br>
-
-When querying the value of $f(\vec{x})$: <br>
-(1) the input vector becomes $\vec{x'} = \vec{x} + \vec{\epsilon}$, with $\epsilon_{i}$ follows independent identical normal distribution $N(0, wave^{2})$ <br>
-(2) the returned value becomes $f(\vec{x'}) + \xi$, with $\xi \sim N(0, \zeta^{2}f^{2}(\vec{x'}))$ <br>
+The returned value is $f(\vec{x}) + \xi$, with $\xi \sim N(0, \zeta^{2}f^{2}(\vec{x'}))$ <br>
 
 The following class also support returning the true value of the function by using `query(x, add_std=0)`
 ```
@@ -93,10 +89,9 @@ The following class also support returning the true value of the function by usi
 import numpy as np
 import math as ma
 class func:
-    def __init__(self, f=1, zeta=1, wave=1):
+    def __init__(self, f=1, zeta=1):
         self.f = f
-        self.zeta = zeta
-        self.wave = wave
+        self.zeta = zete
 
     def noise(self, mean, std):
         if std == 0:
@@ -106,8 +101,6 @@ class func:
     def query(self, x, add_std=1):
         result = 0
         x = np.array(x)
-        for i in range(len(x)):
-            x[i] += self.noise(0, self.wave*add_std)
         if self.f == 1:
             A = 0
             B = 1
@@ -134,8 +127,7 @@ import numpy as np
 
 f = 1  # function: 1-Griewank
 zeta = 1  # std of the noise
-wave = 0.1  # wave of the input
-q = func(1, zeta, wave)
+q = func(f, zeta)
 
 num_sample = 2000  # sample budget
 d = 10  # dimension of the function
