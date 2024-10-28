@@ -14,7 +14,7 @@ from TM_RTSG import TM_RTSG
 ## Step 2 Setup
 ### Instantiate
 ```
-example = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel='Brownian Field', parameter=np.array([1,1]))
+example = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel='Brownian Field', parameter=np.array([1,1]), sigma=1)
 ```
 #### Paremeters
 >__`num_sample`: *int, maximum number of sampling accepted*__
@@ -38,24 +38,23 @@ example = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel='Brownian Fiel
 >>*'Brownian Bridge' :* $[T]$ <br>
 >>*'Laplace' :* $[\theta]$<br>
 
-#### Attributes
->__`num_sg_sample`: *int, the number of points on the sparse sampling grid*__ <br>
->> Each point will be sampled once, the algorithm will sample for `num_sg_sample` times and `num_sg_sample` $\leq$ `num_sample` <br>
-
->__`sg_design`: *2d np.array(`num_sg_sample`*$\times$*`d`)*__ <br>
->>`sg_design[i, :]` : the *(i+1)*-th sampling point on the sparse grid
-
-### Set of Parameter
-```
-example.set_parameter(sigma='Default'):
-```
-#### Paremeters
-> __`sigma`: *1d np.array(length = `num_sg_sample`) or 'Default', regularization parameter*__
+> __`sigma`: *float or 1d np.array(length = `num_sg_sample`), regularization parameter, Default = 1*__
 >> This parameter matches the diagonal element of the Matrix $\Sigma$ in the article. <br>
->> sigma is automatically set as `np.ones(num_sg_sample)` after instantiation. <br>
->> The length of the array should be equal to the `num_sg_sample` to regularize all the sample points. <br>
+>> If the input is a float number, the regularization parameter will be a vector with length `num_sample` and all values are sigma. <br>
+>> If the input is an 1d array, the length of it should be equal to `num_sample` to regularize all the sample points. <br>
 >> All the element in the regularization array should be nonzero to guarantee the existence of the inverse. <br>
->> If you choose 'Default', the regularization will be set as `np.ones(num_sg_sample)`. <br>
+
+
+#### Attributes
+>__`num_sg_sample`: *int, the number of points on the classical sparse sampling grid*__ <br>
+>> The algorithm will find the highest level of sparse grid with `num_sg_sample` $\leq$ `num_sample` <br>
+>> The remaining `num_sample - num_sg_sample` points will be randomly selected from next level of sparse grid.
+
+>__`sg_design`: *2d np.array(`num_sample`*$\times$*`d`)*__ <br>
+>>`sg_design[i, :]` : the *(i+1)*-th sampling point on the sparse grid
+>__`K_inv`: scipy.sparse._csc.csc_matrix
+>>The inverse of the kernel matrix by the fast computation algorithm (Algorithm 4)
+
 
 ### Input the Function
 ```
@@ -86,10 +85,9 @@ The returned value is $f(\vec{x}) + \xi$, with $\xi \sim N(0, \zeta^{2}f^{2}(\ve
 The following class also support returning the true value of the function by using `query(x, add_std=0)`
 ```
 # func.py
-import numpy as np
-import math as ma
 class func:
-    def __init__(self, f=1, zeta=1):
+    def __init__(self, d, f=1, zeta=1):
+        self.d = d
         self.f = f
         self.zeta = zeta
 
@@ -102,11 +100,8 @@ class func:
         result = 0
         x = np.array(x)
         if self.f == 1:
-            A = 0
-            B = 1
-            for i in range(len(x)):
-                A += x[i] ** 2 / 4000
-                B *= ma.cos(x[i] / (i + 1))
+            A = np.sum(np.square(x)) / 4000
+            B = np.prod(np.cos(x / np.arange(1, len(x) + 1)))
             result = - 50 * (A - B + 1)
         if self.f == 2:
             A = 0
@@ -119,34 +114,34 @@ class func:
         return result
 ```
 ### Use TM_RTSG for prediction
+> We first try to predict the value on the sparse grid. (For example, predict the sample point No.10 - 50)
+>> For this kind of prediction, we can check the sampling value and compare the result.
+> Secondly, any points in the domain can be predicted. (The point will be randomly generated with uniform distribution)
 ```
-# example.py
-from TM_RTSG import TM_RTSG
-from func import func
-import numpy as np
-
 f = 1  # function: 1-Griewank
 zeta = 1  # std of the noise
-q = func(f, zeta)
-
 num_sample = 2000  # sample budget
-d = 10  # dimension of the function
+d = 5  # dimension of the function
 lower_bound = -10  # lower_bound of the domain
 upper_bound = 10  # upper_bound of the domain
-kernel = 'Brownian Field'  # kernel: Select from 'Brownian Motion', 'Brownian Bridge', 'Laplace', 'Brownian Field'
-parameter = np.array([1, 1])  # parameter for the kernel
+kernel = 'Laplace'  # kernel: Select from 'Brownian Motion', 'Brownian Bridge', 'Laplace', 'Brownian Field'
+parameter = np.array([0.75])  # parameter for the kernel
+sigma = 0.01  # regularization parameter
 
-s = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel, parameter)
+q = func(d, 1, zeta)
+s = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel, parameter, sigma)
 
-s.solve(q.query)  # input function
+s.solve(q.query)  # input data
 
-x = s.sg_design[1, :]  # point to predict (on the sparse grid)
-ans = s.predict(x)
-print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std, "Sample: %.2f" % s.y_sample[1], "Ans: %.2f" % q.query(x, 0))
+for i in range(10, 50): 
+    x = s.sg_design[i, :]  # point to predict
+    ans = s.predict(x)
+    print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std, "Sample: %.2f" % s.y_sample[i], "Ans: %.2f" % q.query(x, 0))
 
-x = np.ones(s.d)  # point to predict (not on the sparse grid)
+x = np.random.uniform(lower_bound, upper_bound, s.d)
 ans = s.predict(x)
 print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std, "Ans: %.2f" % q.query(x, 0))
+
 ```
 
 
