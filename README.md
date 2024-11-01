@@ -14,7 +14,7 @@ from TM_RTSG import TM_RTSG
 ## Step 2 Setup
 ### Instantiate
 ```
-example = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel='Brownian Field', parameter=np.array([1,1]), sigma=1)
+example = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel='Brownian Field', parameter=np.array([1,1]))
 ```
 #### Paremeters
 >__`num_sample`: *int, maximum number of sampling accepted*__
@@ -38,13 +38,6 @@ example = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel='Brownian Fiel
 >>*'Brownian Bridge' :* $[T]$ <br>
 >>*'Laplace' :* $[\theta]$<br>
 
-> __`sigma`: *float or 1d np.array(length = `num_sg_sample`), regularization parameter, Default = 1*__
->> This parameter matches the diagonal element of the Matrix $\Sigma$ in the article. <br>
->> If the input is a float number, the regularization parameter will be a vector with length `num_sample` and all values are sigma. <br>
->> If the input is an 1d array, the length of it should be equal to `num_sample` to regularize all the sample points. <br>
->> All the element in the regularization array should be nonzero to guarantee the existence of the inverse. <br>
-
-
 #### Attributes
 >__`num_sg_sample`: *int, the number of points on the classical sparse sampling grid*__ <br>
 >> The algorithm will find the highest level of sparse grid with `num_sg_sample` $\leq$ `num_sample` <br>
@@ -52,18 +45,27 @@ example = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel='Brownian Fiel
 
 >__`sg_design`: *2d np.array(`num_sample`*$\times$*`d`)*__ <br>
 >>`sg_design[i, :]` : the *(i+1)*-th sampling point on the sparse grid
->__`K_inv`: scipy.sparse._csc.csc_matrix
+
+>__`K_inv`: *scipy.sparse._csc.csc_matrix*__ <br>
 >>The inverse of the kernel matrix by the fast computation algorithm (Algorithm 4)
 
 
 ### Input the Function
 ```
-example.solve(func)
+example.solve(func, sigma=0.1, resample=1)
 ```
 #### Paremeters
-> __`func`: *function to be estimated*__
->> The function should recieve an 1d numpy array with length = `d` and return a float value.
+> __`func`: *function to be estimated*__ <br>
+>> The input of the function an 1d np.array with length = `d`, and return a float value.
 
+> __`sigma`: *float, 1d array or 'var', the regularization parameter, Default = 0.1*__ <br>
+>> If the input is a float number, the regularization parameter for all sampling point will be the input float number. <br>
+>> If the input is an 1d np.array, the length should be equal to `num_sample`, the regularization parameter will be `sigma[i]` at the i-th sampling point. <br>
+>> If the input is 'var', the regularization parameter will be the sample variance at each sampling point. <br>
+>> All the element in the regularization array should be nonzero to guarantee the existence of the inverse. <br>
+
+> __`resample`: *int, the number of repeated sampling at each sampling point, Default = 1*__ <br>
+>> Note that estimating the sample variance requires `resample` to be larger than 1, if `sigma`='var'.
 ## Step 3 Prediction
 ```
 ans = s.predict(x)
