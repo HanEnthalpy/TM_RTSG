@@ -29,18 +29,20 @@ class func:
             result = (ma.sin(ma.pi * x[0])) ** 2
             result += np.sum((np.square(x[:-1] - 1) * (1 + 10 * np.square(np.sin(ma.pi * x[:-1] + 1)))))
             result += (x[-1] - 1) ** 2 * (1 + (ma.sin(2 * ma.pi * x[-1])) ** 2)
+        if self.f == 5:  # Michalewicz
+            result = -np.sum(np.sin(x) * np.power(np.sin(np.square(x) * np.arange(1, len(x)+1) / ma.pi), 20))
         result += self.noise(0, ma.sqrt(self.zeta) * max(0.01, abs(result))) * add_std
         return result
 
 
-f_ = 1  # function: 1-Griewank
-zeta_ = 10  # std of the noise
-num_sample = 100  # sample budget
-d = 2  # dimension of the function
-lower_bound = -4  # lower_bound of the domain
-upper_bound = 4  # upper_bound of the domain
+f_ = 5  # function: 5-Michalewicz
+zeta_ = 1  # std of the noise
+num_sample = 1000  # sample budget
+d = 20  # dimension of the function
+lower_bound = 0  # lower_bound of the domain
+upper_bound = ma.pi  # upper_bound of the domain
 kernel = 'Laplace'  # kernel: Select from 'Brownian Motion', 'Brownian Bridge', 'Laplace', 'Brownian Field'
-parameter = np.array([0.4])  # parameter for the kernel
+parameter = np.array([0.2])  # parameter for the kernel
 
 q = func(d, f_, zeta_)
 s = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel, parameter)
