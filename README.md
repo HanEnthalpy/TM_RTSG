@@ -69,14 +69,14 @@ example.solve(func, sigma=0.1, resample=1)
 ## Step 3 Prediction
 ```
 ans = s.predict(x)
-print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std)
+print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.MSE)
 ```
 #### Input
 > __`x`: *1d np.array(length = `d`), the point to be estimated*__ <br>
 #### Output
 > __`ans`: *result of the prediction*__ <br>
 >> `ans.value`: predicted value of func(`x`) <br>
->> `ans.std`: MSE of the estimator <br>
+>> `ans.MSE`: MSE of the estimator <br>
 
 ## Example
 The example programme can be found in the "Example" directory
@@ -86,7 +86,6 @@ The returned value is $f(\vec{x}) + \xi$, with $\xi \sim N(0, \zeta^{2}f^{2}(\ve
 
 The following class also support returning the true value of the function by using `query(x, add_std=0)`
 ```
-# func.py
 class func:
     def __init__(self, d, f=1, zeta=1):
         self.d = d
@@ -101,18 +100,20 @@ class func:
     def query(self, x, add_std=1):
         result = 0
         x = np.array(x)
-        if self.f == 1:
-            A = np.sum(np.square(x)) / 4000
-            B = np.prod(np.cos(x / np.arange(1, len(x) + 1)))
-            result = - 50 * (A - B + 1)
-        if self.f == 2:
-            A = 0
-            B = 1
-            for i in range(len(x)):
-                A += abs(x[i])
-                B *= abs(x[i])
-            result = - A - B + 100
-        result += self.noise(0, self.zeta * min(1, abs(result))) * add_std
+        if self.f == 1:  # Griewank
+            result = np.sum(np.square(x)) / 4000 - np.prod(np.cos(x)) + 1
+        if self.f == 2:  # Schwefel-2.22
+            result = np.sum(np.abs(x)) + np.prod(np.abs(x))
+        if self.f == 3:  # Rastrigin
+            result = 10 * len(x) + np.sum(np.square(x) - 10 * np.cos(x * 2 * ma.pi))
+        if self.f == 4:  # Levy
+            x = 1 + (x - 1) / 4
+            result = (ma.sin(ma.pi * x[0])) ** 2
+            result += np.sum((np.square(x[:-1] - 1) * (1 + 10 * np.square(np.sin(ma.pi * x[:-1] + 1)))))
+            result += (x[-1] - 1) ** 2 * (1 + (ma.sin(2 * ma.pi * x[-1])) ** 2)
+        if self.f == 5:  # Michalewicz
+            result = -np.sum(np.sin(x) * np.power(np.sin(np.square(x) * np.arange(1, len(x)+1) / ma.pi), 20))
+        result += self.noise(0, ma.sqrt(self.zeta) * max(0.01, abs(result))) * add_std
         return result
 ```
 ### Use TM_RTSG for prediction
@@ -120,29 +121,40 @@ class func:
 >> For this kind of prediction, we can check the sampling value and compare the result.
 > Secondly, any points in the domain can be predicted. (The point will be randomly generated with uniform distribution)
 ```
-f = 1  # function: 1-Griewank
-zeta = 1  # std of the noise
-num_sample = 2000  # sample budget
-d = 5  # dimension of the function
-lower_bound = -10  # lower_bound of the domain
-upper_bound = 10  # upper_bound of the domain
+f_ = 5  # function: 5-Michalewicz
+zeta_ = 1  # std of the noise
+num_sample = 1000  # sample budget
+d = 20  # dimension of the function
+lower_bound = 0  # lower_bound of the domain
+upper_bound = ma.pi  # upper_bound of the domain
 kernel = 'Laplace'  # kernel: Select from 'Brownian Motion', 'Brownian Bridge', 'Laplace', 'Brownian Field'
-parameter = np.array([0.75])  # parameter for the kernel
-sigma = 0.01  # regularization parameter
+parameter = np.array([0.2])  # parameter for the kernel
 
-q = func(d, 1, zeta)
-s = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel, parameter, sigma)
+q = func(d, f_, zeta_)
+s = TM_RTSG(num_sample, d, lower_bound, upper_bound, kernel, parameter)
+s.solve(q.query, 'var', 10)  # input data
 
-s.solve(q.query)  # input data
-
-for i in range(10, 50): 
-    x = s.sg_design[i, :]  # point to predict
+intraerror = []
+sample_error = []
+samples = random.sample(range(num_sample), 50)
+for i in range(50):
+    x = s.sg_design[samples[i], :]  # point to predict
     ans = s.predict(x)
-    print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std, "Sample: %.2f" % s.y_sample[i], "Ans: %.2f" % q.query(x, 0))
+    print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.MSE, "Sample: %.2f" % s.Y_sample_mean[samples[i]],
+          "Ans: %.2f" % q.query(x, 0))
+    intraerror.append(ans.value - q.query(x, 0))
+    sample_error.append(s.Y_sample_mean[samples[i]] - q.query(x, 0))
 
-x = np.random.uniform(lower_bound, upper_bound, s.d)
-ans = s.predict(x)
-print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.std, "Ans: %.2f" % q.query(x, 0))
+intererror = []
+for i in range(1000):
+    x = np.random.uniform(lower_bound, upper_bound, s.d)
+    ans = s.predict(x)
+    print("Estimator: %.2f" % ans.value, "MSE: %.2f" % ans.MSE, "Ans: %.2f" % q.query(x, 0))
+    intererror.append(ans.value - q.query(x, 0))
+
+print('Root Mean Squared Error for Estimator on the grid: ', ma.sqrt(np.mean(np.square(intraerror))))
+print('Root Mean Squared Error for Sampling Mean on the grid: ', ma.sqrt(np.mean(np.square(sample_error))))
+print('Root Mean Squared Error for Estimator on random point: ', ma.sqrt(np.mean(np.square(intererror))))
 
 ```
 
