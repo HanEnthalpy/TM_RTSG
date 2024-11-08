@@ -117,7 +117,7 @@ class func:
         return result
 ```
 ### Use TM_RTSG for prediction
-> We first try to predict the value on the sparse grid. (For example, predict the sample point No.10 - 50)
+> We first try to predict the value on the sparse grid.
 >> For this kind of prediction, we can check the sampling value and compare the result.
 > Secondly, any points in the domain can be predicted. (The point will be randomly generated with uniform distribution)
 ```
